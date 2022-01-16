@@ -5,7 +5,7 @@ Fabric script generates .tgz archive from contents of web_static directory
 import os.path
 from datetime import datetime
 from fabric.api import env, local, put, run
-env.user = 'ubuntu'
+
 env.hosts = ["34.139.211.56", "3.215.22.101"]
 
 
