@@ -1,60 +1,59 @@
-package { 'nginx':
-  ensure   => 'present',
-  provider => 'apt'
-} ->
-
-file { '/data':
-  ensure  => 'directory'
-} ->
-
-file { '/data/web_static':
-  ensure => 'directory'
-} ->
-
-file { '/data/web_static/releases':
-  ensure => 'directory'
-} ->
-
-file { '/data/web_static/releases/test':
-  ensure => 'directory'
-} ->
-
-file { '/data/web_static/shared':
-  ensure => 'directory'
-} ->
-
-file { '/data/web_static/releases/test/index.html':
-  ensure  => 'present',
-  content => "Holberton School Puppet\n"
-} ->
-
-file { '/data/web_static/current':
-  ensure => 'link',
-  target => '/data/web_static/releases/test'
-} ->
-
-exec { 'chown -R ubuntu:ubuntu /data/':
-  path => '/usr/bin/:/usr/local/bin/:/bin/'
+# update packages
+exec { 'apt-get-update':
+  command  => 'sudo apt-get -y update',
+  provider => shell,
 }
 
-file { '/var/www':
-  ensure => 'directory'
-} ->
+# install nginx
+exec {'install nginx':
+  command  => 'sudo apt-get -y install nginx',
+  provider => shell,
+}
 
-file { '/var/www/html':
-  ensure => 'directory'
-} ->
+# create the path /data/web_static/releases/test/
+exec {'mkdir /test':
+  command  => 'sudo mkdir -p /data/web_static/releases/test/',
+  provider => shell,
+}
 
-file { '/var/www/html/index.html':
-  ensure  => 'present',
-  content => "Holberton School Nginx\n"
-} ->
+# create the path /data/web_static/shared/
+exec {'mkdir /shared':
+  command  => 'sudo mkdir -p /data/web_static/shared/',
+  provider => shell,
+}
 
-file { '/var/www/html/404.html':
-  ensure  => 'present',
-  content => "Ceci n'est pas une page\n"
-} ->
+# create test inex file with temporary content
+exec {'create index.html':
+  command  => 'echo "Set by puppet manifest of task 5 from project 0X03 AirBnB" > /data/web_static/releases/test/index.html',
+  provider => shell,
+}
 
-exec { 'nginx restart':
-  path => '/etc/init.d/'
+# change owner of folder /date recursively
+exec {'chown-data':
+  command  => 'sudo chown -hR ubuntu:ubuntu /data; sudo chown -hR ubuntu:ubuntu /data/web_static/',
+  provider => shell,
+}
+
+# link /current to /test
+exec {'link /current ot /test':
+  command  => 'sudo ln -sf /data/web_static/releases/test /data/web_static/current',
+  provider => shell,
+}
+
+# add /hbnb_static location to nginx config
+exec {'add new location /hbnb_static':
+  command  => 'sudo sed -i "38i\ \\\tlocation /hbnb_static/ {\n\t\talias /data/web_static/current/;\n\t}\n" /etc/nginx/sites-available/default',
+  provider => shell,
+}
+
+# link sites-enabled/default to sites-available/default
+exec {'link sites enabled to available':
+  command  => 'sudo ln -sf /etc/nginx/sites-available/default /etc/nginx/sites-enabled/default',
+  provider => shell,
+}
+
+# restart Nginx service
+exec {'restart nginx':
+  command  => 'sudo service nginx restart',
+  provider => shell,
 }
