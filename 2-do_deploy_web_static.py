@@ -3,49 +3,41 @@
 Fabric script generates .tgz archive
 from contents of web_static directory
 """
-from fabric.api import local, env, run, put
-from datetime import datetime
-import os
+import os.path
+from fabric.api import env, put, run
 
-
-env.hosts = ['34.139.211.56', '3.215.22.101']
-
-
-def do_pack():
-    """ return archive path if successful """
-    cur_time = datetime.now().strftime("%Y%m%d%H%M%S")
-
-    local("mkdir -p versions")
-    try:
-        local("tar -cvzf versions/web_static_{}.tgz web_static".format(
-            cur_time))
-        return ("versions/web_static_{}.tgz".format(cur_time))
-    except:
-        return None
+env.hosts = ["34.139.211.56", "3.215.22.101"]
 
 
 def do_deploy(archive_path):
-    """ return `True` if successful """
-
-    if os.path.exists(archive_path):
-        return None
-    else:
+    """Distributes an archive to a web server."""
+    if os.path.isfile(archive_path) is False:
         return False
+    file = archive_path.split("/")[-1]
+    name = file.split(".")[0]
 
-    pathname = "/data/web_static"
-    filename = os.path.basename(archive_path)
-    name = os.path.splitext(filename)
-
-    try:
-        put(archive_path, "/tmp")
-        run("mkdir -p /data/web_static/releases/{}".format(name))
-        run("tar -xzf /tmp/{} -C /data/web_static/releases/{}".format(
-            filename, name))
-        run("rm /tmp/{}".format(filename))
-        run("mv /data/web/static/releases/{}".format(name))
-        run("rm -rf /data/web_static/relases/{}/web_static".format(name))
-        run("rm -rf /data/web_static/current")
-        run("ln -s {}/releases/{} {}/current".format(pathname, name))
-        return True
-    except:
+    if put(archive_path, "/tmp/{}".format(file)).failed is True:
         return False
+    if run("rm -rf /data/web_static/releases/{}/".
+           format(name)).failed is True:
+        return False
+    if run("mkdir -p /data/web_static/releases/{}/".
+           format(name)).failed is True:
+        return False
+    if run("tar -xzf /tmp/{} -C /data/web_static/releases/{}/".
+           format(file, name)).failed is True:
+        return False
+    if run("rm /tmp/{}".format(file)).failed is True:
+        return False
+    if run("mv /data/web_static/releases/{}/web_static/* "
+           "/data/web_static/releases/{}/".format(name, name)).failed is True:
+        return False
+    if run("rm -rf /data/web_static/releases/{}/web_static".
+           format(name)).failed is True:
+        return False
+    if run("rm -rf /data/web_static/current").failed is True:
+        return False
+    if run("ln -s /data/web_static/releases/{}/ /data/web_static/current".
+           format(name)).failed is True:
+        return False
+    return True
